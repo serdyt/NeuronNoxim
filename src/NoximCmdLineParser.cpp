@@ -268,7 +268,9 @@ void parseCmdLine(int arg_num, char *arg_vet[])
 	    else if (!strcmp(arg_vet[i], "-trace")) {
 		NoximGlobalParams::trace_mode = true;
 		strcpy(NoximGlobalParams::trace_filename, arg_vet[++i]);
-	    } else if (!strcmp(arg_vet[i], "-dimx"))
+	    }else if (!strcmp(arg_vet[i], "-ncfg")){
+	    	strcpy(NoximGlobalParams::neuron_config_file,arg_vet[++i]);
+	    }else if (!strcmp(arg_vet[i], "-dimx"))
 		NoximGlobalParams::mesh_dim_x = atoi(arg_vet[++i]);
 	    else if (!strcmp(arg_vet[i], "-dimy"))
 		NoximGlobalParams::mesh_dim_y = atoi(arg_vet[++i]);
@@ -343,7 +345,10 @@ void parseCmdLine(int arg_num, char *arg_vet[])
 			atof(arg_vet[++i]);
 	    } else if (!strcmp(arg_vet[i], "-traffic")) {
 		char *traffic = arg_vet[++i];
-		if (!strcmp(traffic, "random"))
+		if (!strcmp(traffic, "neuron")){
+			NoximGlobalParams::traffic_distribution = TRAFFIC_NEURON;
+		}
+		else if (!strcmp(traffic, "random"))
 		    NoximGlobalParams::traffic_distribution =
 			TRAFFIC_RANDOM;
 		else if (!strcmp(traffic, "transpose1"))

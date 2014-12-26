@@ -15,6 +15,8 @@
 #include <systemc.h>
 #include "NoximMain.h"
 #include "NoximGlobalTrafficTable.h"
+#include "NeuronPE.h"
+
 using namespace std;
 
 SC_MODULE(NoximProcessingElement)
@@ -33,6 +35,12 @@ SC_MODULE(NoximProcessingElement)
     sc_in < bool > ack_tx;	// The outgoing ack signal associated with the output channel
 
     sc_in < int >free_slots_neighbor;
+
+    NeuronPE NPE;
+    sc_signal<bool> NPErx;
+    sc_signal<bool> NPEtx;
+    sc_signal<NoximPacket> NPEpacketIn;
+    sc_signal<NoximPacket> NPEpacketOut;
 
     // Registers
     int local_id;		// Unique identification number
@@ -67,14 +75,24 @@ SC_MODULE(NoximProcessingElement)
     double log2ceil(double x);
 
     // Constructor
-    SC_CTOR(NoximProcessingElement) {
-	SC_METHOD(rxProcess);
-	sensitive << reset;
-	sensitive << clock.pos();
+    SC_HAS_PROCESS(NoximProcessingElement);
+    NoximProcessingElement(sc_module_name name_, NeuronConfig& nConfig_, int localID)
+    	: sc_module(name_), NPE("NPE", nConfig_, localID)
+    {
+    	NPE.clock(clock);
+    	NPE.reset(reset);
+    	NPE.rx(NPErx);
+    	NPE.tx(NPEtx);
+    	NPE.packetIn(NPEpacketIn);
+    	NPE.packetOut(NPEpacketOut);
 
-	SC_METHOD(txProcess);
-	sensitive << reset;
-	sensitive << clock.pos();
+		SC_METHOD(rxProcess);
+		sensitive << reset;
+		sensitive << clock.pos();
+
+		SC_METHOD(txProcess);
+		sensitive << reset;
+		sensitive << clock.pos();
     }
 
 };

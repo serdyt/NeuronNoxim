@@ -18,20 +18,37 @@ int NoximProcessingElement::randInt(int min, int max)
 
 void NoximProcessingElement::rxProcess()
 {
-    if (reset.read()) {
-	ack_rx.write(0);
-	current_level_rx = 0;
-    } else {
-	if (req_rx.read() == 1 - current_level_rx) {
-	    NoximFlit flit_tmp = flit_rx.read();
-	    if (NoximGlobalParams::verbose_mode > VERBOSE_OFF) {
-		cout << sc_simulation_time() << ": ProcessingElement[" <<
-		    local_id << "] RECEIVING " << flit_tmp << endl;
-	    }
-	    current_level_rx = 1 - current_level_rx;	// Negate the old value for Alternating Bit Protocol (ABP)
+	if (reset.read()) {
+		ack_rx.write(0);
+		current_level_rx = 0;
+	} else {
+		if (req_rx.read() == 1 - current_level_rx) {
+			NoximFlit flit_tmp = flit_rx.read();
+			if (flit_tmp.flit_type == FLIT_TYPE_TAIL) {
+				cout << sc_time_stamp().to_double() / 1000 << " Noxim PE "
+						<< local_id << " recives a flit (" << flit_tmp.src_id
+						<< "," << flit_tmp.src_neuron_id << ","
+						<< flit_tmp.dst_id << "," << flit_tmp.dst_neuron_id
+						<< ")" << " type " << flit_tmp.flit_type << endl;
+				NPErx.write(true);
+				NPEpacketIn.write(
+						NoximPacket(flit_tmp.src_id, flit_tmp.src_neuron_id,
+								flit_tmp.dst_id, flit_tmp.dst_neuron_id,
+								flit_tmp.timestamp, 0));
+				//packet size is not actually used, so led it be 0...
+			}
+
+			if (NoximGlobalParams::verbose_mode > VERBOSE_OFF) {
+				cout << sc_simulation_time() << ": ProcessingElement["
+						<< local_id << "] RECEIVING " << flit_tmp << endl;
+			}
+			current_level_rx = 1 - current_level_rx;// Negate the old value for Alternating Bit Protocol (ABP)
+		}
+		else{
+			NPErx.write(false);
+		}
+		ack_rx.write(current_level_rx);
 	}
-	ack_rx.write(current_level_rx);
-    }
 }
 
 void NoximProcessingElement::txProcess()
@@ -48,7 +65,6 @@ void NoximProcessingElement::txProcess()
 	    transmittedAtPreviousCycle = true;
 	} else
 	    transmittedAtPreviousCycle = false;
-
 
 	if (ack_tx.read() == current_level_tx) {
 	    if (!packet_queue.empty()) {
@@ -73,6 +89,8 @@ NoximFlit NoximProcessingElement::nextFlit()
 
     flit.src_id = packet.src_id;
     flit.dst_id = packet.dst_id;
+    flit.src_neuron_id = packet.src_neur_id;
+    flit.dst_neuron_id = packet.dst_neur_id;
     flit.timestamp = packet.timestamp;
     flit.sequence_no = packet.size - packet.flit_left;
     flit.hop_no = 0;
@@ -97,6 +115,19 @@ bool NoximProcessingElement::canShot(NoximPacket & packet)
 {
     bool shot;
     double threshold;
+
+    if (NoximGlobalParams::traffic_distribution == TRAFFIC_NEURON){
+		if (NPEtx.read()){
+			//TODO : check packet parameters!
+			packet = NPEpacketOut.read();
+			cout<<sc_time_stamp().to_double()/1000 <<" Noxim PE " <<local_id<< " produces a packet "<<packet<<endl;
+			return true;
+		}
+		else{
+			return false;
+		}
+
+    }
 
     if (NoximGlobalParams::traffic_distribution != TRAFFIC_TABLE_BASED) {
 	if (!transmittedAtPreviousCycle)

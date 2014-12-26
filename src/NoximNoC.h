@@ -76,7 +76,10 @@ SC_MODULE(NoximNoC)
 
     // Constructor
 
-    SC_CTOR(NoximNoC) {
+    SC_HAS_PROCESS(NoximNoC);
+    NoximNoC(sc_module_name name_, NeuronConfig& nConfig_)
+    	: sc_module(name_), nConfig(nConfig_)
+    {
 
 	//---------- Mau experiment <start>
 	/*
@@ -96,6 +99,7 @@ SC_MODULE(NoximNoC)
   private:
 
     void buildMesh();
+    NeuronConfig& nConfig;
 
 };
 

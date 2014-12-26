@@ -12,6 +12,7 @@
 #include "NoximNoC.h"
 #include "NoximGlobalStats.h"
 #include "NoximCmdLineParser.h"
+#include "Neuron_config_parser.h"
 using namespace std;
 
 // need to be globally visible to allow "-volume" simulation stop
@@ -44,7 +45,8 @@ char NoximGlobalParams::router_power_filename[128] = DEFAULT_ROUTER_PWR_FILENAME
 bool NoximGlobalParams::low_power_link_strategy = DEFAULT_LOW_POWER_LINK_STRATEGY;
 double NoximGlobalParams::qos = DEFAULT_QOS;
 bool NoximGlobalParams::show_buffer_stats = DEFAULT_SHOW_BUFFER_STATS;
-                                  
+char NoximGlobalParams::neuron_config_file [128] = "coincidence_detector.cfg";
+
 //---------------------------------------------------------------------------
 
 int sc_main(int arg_num, char *arg_vet[])
@@ -58,12 +60,18 @@ int sc_main(int arg_num, char *arg_vet[])
 
     parseCmdLine(arg_num, arg_vet);
 
+    NeuronConfig nConfig = NeuronConfigParser(NoximGlobalParams::neuron_config_file);
+
+	cout << "Neurons per cluster " << nConfig.maxNeurons << endl;
+	cout << "Maxdest " << nConfig.maxDest << endl;
+	cout << "Maxsource "<< nConfig.maxSources<<endl;
+
     // Signals
     sc_clock clock("clock", 1, SC_NS);
     sc_signal <bool> reset;
 
     // NoC instance
-    NoximNoC *n = new NoximNoC("NoC");
+    NoximNoC *n = new NoximNoC("NoC", nConfig);
     n->clock(clock);
     n->reset(reset);
 
@@ -102,7 +110,7 @@ int sc_main(int arg_num, char *arg_vet[])
     reset.write(1);
     cout << "Reset...";
     srand(NoximGlobalParams::rnd_generator_seed);	// time(NULL));
-    sc_start(DEFAULT_RESET_TIME, SC_NS);
+    sc_start(DEFAULT_RESET_TIME,  SC_NS);
     reset.write(0);
     cout << " done! Now running for " << NoximGlobalParams::
 	simulation_time << " cycles..." << endl;
