@@ -3,8 +3,8 @@
 #include "NeuronArbiter.h"
 
 void NeuronArbiter::roundRobin(){
-	while(true){
-		wait();
+	//while(true){
+	//	wait();
 		if (ack.read()){
 			currTx = false;
 			sendMutex.unlock();
@@ -29,7 +29,8 @@ void NeuronArbiter::roundRobin(){
 		}
 		senderID.write(currNeuron);
 		tx.write(currTx);
-	}
+		power.NArbitration();
+	//}
 }
 
 NeuronArbiter::NeuronArbiter(sc_module_name name_, int size_)
@@ -42,20 +43,22 @@ NeuronArbiter::NeuronArbiter(sc_module_name name_, int size_)
 	currTx = false;
 	sendMutex.unlock();
     //inventories: react to fire flags from neurons
-    SC_THREAD(inv);
+    SC_METHOD(inv);
+    //set_stack_size(0x5000);
     sensitive<<clock.pos();
 
-    SC_THREAD(roundRobin);
+    SC_METHOD(roundRobin);
+    //set_stack_size(0x5000);
     sensitive<<clock.pos();
   }
 
 void NeuronArbiter::inv() {
-	while (true) {
-		wait();
+	//while (true) {
+	//	wait();
 		for (int i = 0; i < size; i++){
 			if (fire_flag[i]->read()){
 				counters[i]++;
 			}
 		}
-	}
+	//}
 }

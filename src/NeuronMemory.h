@@ -31,7 +31,8 @@ public:
 
 	SC_CTOR(NeuronMemory){
 
-		SC_THREAD(memoryProc);
+		SC_METHOD(memoryProc);
+		//set_stack_size(0x5000);
 		sensitive << clock.pos();
 	}
 
@@ -51,8 +52,8 @@ void NeuronMemory<T>::init(vector<T> buf){
 
 template <class T>
 void NeuronMemory<T>::memoryProc() {
-	while (true) {
-		wait();
+	//while (true) {
+	//	wait();
 		if (address.read() > buffer.size()){
 			cout<< "Wow, wow, wrong input address " << address.read() <<" to the memory"<<endl;
 			assert(0);
@@ -63,7 +64,7 @@ void NeuronMemory<T>::memoryProc() {
 		} else {
 			data.write(buffer[address.read()]);
 		}
-	}
+	//}
 }
 
 #endif /* SRC_MEMORY_H_ */

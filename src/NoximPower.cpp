@@ -22,6 +22,11 @@ double NoximPower::pwr_link        = 0.0;
 double NoximPower::pwr_link_lv     = 0.0;
 double NoximPower::pwr_leakage     = 0.0;
 double NoximPower::pwr_end2end     = 0.0;
+double NoximPower::pwr_decoding    = 0.0;
+double NoximPower::pwr_integration = 0.0;
+double NoximPower::pwr_comparison  = 0.0;
+double NoximPower::pwr_encoding    = 0.0;
+double NoximPower::pwr_nArbitration = 0.0;
 
 bool   NoximPower::power_data_loaded = false;
 
@@ -76,6 +81,31 @@ void NoximPower::EndToEnd()
   pwr += pwr_end2end;
 }
 
+void NoximPower::Decoding()
+{
+	pwr += pwr_decoding;
+}
+
+void NoximPower::Integration()
+{
+	pwr += pwr_integration;
+}
+
+void NoximPower::Comparison()
+{
+	pwr += pwr_comparison;
+}
+
+void NoximPower::NArbitration()
+{
+	pwr += pwr_nArbitration;
+}
+
+void NoximPower::Encoding()
+{
+	pwr += pwr_encoding;
+}
+
 bool NoximPower::LoadPowerData(const char *fname)
 {
   ifstream fin(fname, ios::in);
@@ -117,6 +147,16 @@ bool NoximPower::LoadPowerData(const char *fname)
 		    pwr_leakage = value;
 		  else if (strcmp(label, "PWR_END2END") == 0)
 		    pwr_end2end = value;
+		  else if (strcmp(label, "PWR_DECODING") == 0)
+		  		    pwr_decoding = value;
+		  else if (strcmp(label, "PWR_INTEGRATION") == 0)
+		  		    pwr_integration = value;
+		  else if (strcmp(label, "PWR_COMPARISON") == 0)
+			  	  	pwr_comparison = value;
+		  else if (strcmp(label, "PWR_ENCODING") == 0)
+			  	  pwr_encoding = value;
+		  else if (strcmp(label, "PWR_NARBITRATION") == 0)
+			  	  pwr_nArbitration = value;
 		  else
 		    cerr << "WARNING: Invalid power label: " << label << endl;
 		}

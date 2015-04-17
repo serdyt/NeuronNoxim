@@ -2,7 +2,7 @@ TARGET_ARCH = linux64
 # TARGET_ARCH = macosx64
 
 CC     = g++
-OPT    = -O3
+OPT    = -O0
 DEBUG  = -g
 OTHER  = # -Wall -Wno-deprecated
 CFLAGS = $(OPT) $(OTHER) # $(DEBUG)

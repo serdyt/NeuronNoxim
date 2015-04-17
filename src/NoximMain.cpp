@@ -46,7 +46,11 @@ bool NoximGlobalParams::low_power_link_strategy = DEFAULT_LOW_POWER_LINK_STRATEG
 double NoximGlobalParams::qos = DEFAULT_QOS;
 bool NoximGlobalParams::show_buffer_stats = DEFAULT_SHOW_BUFFER_STATS;
 char NoximGlobalParams::neuron_config_file [128] = "coincidence_detector.cfg";
-
+int NoximGlobalParams::consoleLogPolicy = DEFAULT_CONSOLE_LOG_POLICY;
+FILE * NoximGlobalParams::spikeLogFile = NULL;
+FILE * NoximGlobalParams::voltLogFile = NULL;
+int NoximGlobalParams::voltLogPolicy = DEFAULT_VOLT_LOG;
+NeuronConfig * NoximGlobalParams::nConfig = NULL;
 //---------------------------------------------------------------------------
 
 int sc_main(int arg_num, char *arg_vet[])
@@ -60,18 +64,23 @@ int sc_main(int arg_num, char *arg_vet[])
 
     parseCmdLine(arg_num, arg_vet);
 
-    NeuronConfig nConfig = NeuronConfigParser(NoximGlobalParams::neuron_config_file);
+    NoximGlobalParams::spikeLogFile = fopen(DEFAULT_SPIKE_LOG_FILE,"w");
+    if (NoximGlobalParams::voltLogPolicy > 0){
+    	NoximGlobalParams::voltLogFile = fopen(DEFAULT_VOLT_LOG_FILE,"w");
+    }
 
-	cout << "Neurons per cluster " << nConfig.maxNeurons << endl;
-	cout << "Maxdest " << nConfig.maxDest << endl;
-	cout << "Maxsource "<< nConfig.maxSources<<endl;
+    NoximGlobalParams::nConfig = NeuronConfigParser(NoximGlobalParams::neuron_config_file);
+    cout << "Simulation step " <<NoximGlobalParams::nConfig->step << endl;
+	cout << "Neurons per cluster " <<NoximGlobalParams::nConfig->maxNeurons << endl;
+	cout << "Maxdest " <<NoximGlobalParams::nConfig->maxDest << endl;
+	cout << "Maxsource "<<NoximGlobalParams::nConfig->maxSources<<endl;
 
     // Signals
     sc_clock clock("clock", 1, SC_NS);
     sc_signal <bool> reset;
 
     // NoC instance
-    NoximNoC *n = new NoximNoC("NoC", nConfig);
+    NoximNoC *n = new NoximNoC("NoC");
     n->clock(clock);
     n->reset(reset);
 
@@ -112,8 +121,7 @@ int sc_main(int arg_num, char *arg_vet[])
     srand(NoximGlobalParams::rnd_generator_seed);	// time(NULL));
     sc_start(DEFAULT_RESET_TIME,  SC_NS);
     reset.write(0);
-    cout << " done! Now running for " << NoximGlobalParams::
-	simulation_time << " cycles..." << endl;
+    cout << " done! Now running for " << NoximGlobalParams::simulation_time << " cycles..." << endl;
     sc_start(NoximGlobalParams::simulation_time, SC_NS);
 
     // Close the simulation

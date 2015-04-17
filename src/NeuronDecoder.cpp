@@ -5,9 +5,10 @@
 //reads dest_neur_ID for multiplexor and calculates synapseID for CAM
 void NeuronDecoder::unpacker() {
 	if (rx.read()) {
+		power.Decoding();
 		NoximPacket pack = packetIn.read();
 		//if (pack.dst_neur_id <= MAX_NEURON_IN_PE) {
-			cout<<sc_time_stamp()<<" Decoder CAM input "<<sndCAMstruct(pack.src_id, pack.src_neur_id, pack.dst_neur_id)<<endl;
+			//cout<<sc_time_stamp()<<" Decoder CAM input "<<sndCAMstruct(pack.src_id, pack.src_neur_id, pack.dst_neur_id)<<endl;
 			CAMin.write(sndCAMstruct(pack.src_id, pack.src_neur_id, pack.dst_neur_id));
 			destIDint.write(pack.dst_neur_id);
 		//} else {

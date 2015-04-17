@@ -26,7 +26,7 @@ void NoximNoC::buildMesh()
 	    // Create the single Tile with a proper name
 	    char tile_name[20];
 	    sprintf(tile_name, "Tile[%02d][%02d]", i, j);
-	    t[i][j] = new NoximTile(tile_name, nConfig, j * NoximGlobalParams::mesh_dim_x + i);
+	    t[i][j] = new NoximTile(tile_name, j * NoximGlobalParams::mesh_dim_x + i);
 
 	    // Tell to the router its coordinates
 	    t[i][j]->r->configure(j * NoximGlobalParams::mesh_dim_x + i,
@@ -149,6 +149,18 @@ void NoximNoC::buildMesh()
 	t[0][j]->r->reservation_table.invalidate(DIRECTION_WEST);
 	t[NoximGlobalParams::mesh_dim_x - 1][j]->r->reservation_table.invalidate(DIRECTION_EAST);
     }
+}
+
+void NoximNoC::logNeuronV(){
+	for (int j = 0; j < NoximGlobalParams::mesh_dim_y; j++) {
+    for (int i = 0; i < NoximGlobalParams::mesh_dim_x; i++) {
+		for (auto b = t[i][j]->pe->NPE->neurons.begin(); b != t[i][j]->pe->NPE->neurons.end(); b++){
+			fprintf(NoximGlobalParams::voltLogFile, "%.2f ", b->getVolt());
+		}
+	}
+    }
+	fprintf(NoximGlobalParams::voltLogFile, "\n");
+
 }
 
 NoximTile *NoximNoC::searchNode(const int id) const

@@ -22,10 +22,10 @@ EXE    = $(MODULE)
 
 all:$(EXE)
 $(EXE): $(OBJS) $(SYSTEMC)/lib-$(TARGET_ARCH)/libsystemc.a 
-	$(CC) $(CFLAGS) $(INCDIR) $(LIBDIR) -o $@ $(OBJS) $(LIBS) 2>&1 | c++filt
+	$(CC) $(CFLAGS) $(INCDIR) $(LIBDIR) -o $@ $(OBJS) $(LIBS) -g 2>&1 | c++filt
 
 .cpp.o:
-	$(CC) $(CFLAGS) $(INCDIR) -std=c++11 -c $<
+	$(CC) $(CFLAGS) $(INCDIR) -std=c++11 -c -g $<
 
 clean:
 	rm -f $(OBJS) *~ $(EXE) core

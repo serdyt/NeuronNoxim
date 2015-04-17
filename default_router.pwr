@@ -1,19 +1,46 @@
 # baseline router
 # energy data obtained from Orion 2.0
 # ./orion_router_power -p -d 2 -l 0.5 my_router
-# PARM_TECH_POINT       45
+# PARM_TECH_POINT       65
 # PARM_Vdd              1.0
 # PARM_Freq             1.0e9
 # PARM_v_channel	1
 # PARM_in_buf_set	4
-# PARM_flit_width	32
+# PARM_flit_width	24
 
-PWR_BUFFERING   9.38275e-12
-PWR_ROUTING     0.0
-PWR_SELECTION   0.0
-PWR_ARBITRATION 3.71035e-13
-PWR_CROSSBAR    1.0258e-11
-PWR_LINK        11.0e-12
-PWR_LINK_LV     11.0e-12
-PWR_LEAKAGE     1.75635e-12
-PWR_END2END     0.0
+PWR_BUFFERING   	8.54678e-12
+PWR_ROUTING     	0.0
+PWR_SELECTION   	0.0
+PWR_ARBITRATION 	4.50637e-13
+PWR_CROSSBAR    	9.31272e-12
+PWR_LINK        	11.0e-12
+PWR_LINK_LV     	11.0e-12
+
+#integratorLeak		4.2e-16 x 9
+#camLeak			8.2e-15
+#ramLeak			1.28e-16 x2
+#FSM				4.5e-17
+#MUX				2.7e-17
+#SR					1.2e-17 x3
+#PWR_LEAKAGE_NOXIM	5.9451e-14
+#PWR_LEAKAGE_NPE	1.27e-14
+PWR_LEAKAGE			7.2151e-14
+
+PWR_END2END     	0.0 
+
+#cam				1.70239e-11
+#ram				7.50141e-13
+#SR					3.028e-14					
+PWR_DECODING		1.8076841e-11
+
+#PWR_INTEGRATION 	5.4e-15
+PWR_INTEGRATION 	2.7e-14
+#PWR_COMPARISON  	1.76e-14
+PWR_COMPARISON  	4.55e-15
+
+#ram				7.50141e-13
+#SR					3.028e-14
+#FSM				8.8448e-14
+PWR_ENCODING		8.68869e-13
+
+PWR_NARBITRATION	1.909e-13

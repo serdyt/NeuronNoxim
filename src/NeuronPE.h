@@ -24,22 +24,23 @@ SC_MODULE(NeuronPE){
 	  sc_out<NoximPacket> packetOut;
 	  sc_out<bool> tx;
 
+	  NeuronDecoder decoder;
+	  NeuronMux<float> mux;
+	  sc_vector<Neuron> neurons;
+	  NeuronArbiter arbiter;
+	  NeuronEncoder encoder;
+
 	  SC_HAS_PROCESS(NeuronPE);
 
-	  NeuronPE(sc_module_name name_, NeuronConfig& nconfig_, int clusterID);
+	  NeuronPE(sc_module_name name_, int clusterID);
+
+	  double getPower();
 
 private:
-	NeuronDecoder decoder;
-	NeuronMux<float> mux;
-	sc_vector<Neuron> neurons;
-	NeuronArbiter arbiter;
-	NeuronEncoder encoder;
-
 	sc_signal<int> decoderDestIDout;
 	sc_signal<float> decoderWeightOut;
 
 	sc_vector<sc_signal<float> > muxOut;
-
 	sc_vector<sc_signal<bool> > fire_flags;
 	sc_vector<sc_signal<float> > V_reset;
 	sc_vector<sc_signal<float> > V_th;
@@ -53,14 +54,6 @@ private:
 	sc_signal<bool> arbiterTx;
 
 	sc_signal<int> localID;
-
-	struct NeuronCreator {
-		NeuronCreator() {}
-		Neuron * operator()(const char*name) {
-			return new Neuron(name);
-		}
-	};
-
 };
 
 #endif /* SRC_NEURONPE_H_ */

@@ -268,6 +268,10 @@ void parseCmdLine(int arg_num, char *arg_vet[])
 	    else if (!strcmp(arg_vet[i], "-trace")) {
 		NoximGlobalParams::trace_mode = true;
 		strcpy(NoximGlobalParams::trace_filename, arg_vet[++i]);
+	    }else if (!strcmp(arg_vet[i], "-clog")){
+	    	NoximGlobalParams::consoleLogPolicy = atoi(arg_vet[++i]);
+	    }else if (!strcmp(arg_vet[i], "-vlog")){
+	    	NoximGlobalParams::voltLogPolicy = atoi(arg_vet[++i]);
 	    }else if (!strcmp(arg_vet[i], "-ncfg")){
 	    	strcpy(NoximGlobalParams::neuron_config_file,arg_vet[++i]);
 	    }else if (!strcmp(arg_vet[i], "-dimx"))

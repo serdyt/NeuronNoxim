@@ -77,8 +77,8 @@ SC_MODULE(NoximNoC)
     // Constructor
 
     SC_HAS_PROCESS(NoximNoC);
-    NoximNoC(sc_module_name name_, NeuronConfig& nConfig_)
-    	: sc_module(name_), nConfig(nConfig_)
+    NoximNoC(sc_module_name name_)
+    	: sc_module(name_)
     {
 
 	//---------- Mau experiment <start>
@@ -91,6 +91,11 @@ SC_MODULE(NoximNoC)
 
 	// Build the Mesh
 	buildMesh();
+
+	if (NoximGlobalParams::voltLogPolicy > 0){
+		SC_METHOD(logNeuronV);
+		sensitive<<clock.pos();
+	}
     }
 
     // Support methods
@@ -99,8 +104,7 @@ SC_MODULE(NoximNoC)
   private:
 
     void buildMesh();
-    NeuronConfig& nConfig;
-
+    void logNeuronV();
 };
 
 #endif

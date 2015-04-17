@@ -13,7 +13,8 @@ public:
 			buffer[i] = 0;
 		}
 
-		SC_THREAD(shift);
+		SC_METHOD(shift);
+		//set_stack_size(0x5000);
 		sensitive << clock.pos();
 	}
 
@@ -24,8 +25,8 @@ private:
 
 template <class T, int size>
 void ShiftRegister<T, size>::shift(){
-	while(true){
-		wait();
+	//while(true){
+	//	wait();
 
 		for (int i = size-1; i > 0; i--){
 			buffer[i] = buffer[i-1];
@@ -39,7 +40,7 @@ void ShiftRegister<T, size>::shift(){
 		}
 		cout<< "]" <<endl;
 		*/
-	}
+	//}
 }
 
 #endif /* NEURONSHIFTREGISTER_H */

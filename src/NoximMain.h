@@ -96,6 +96,9 @@ using namespace std;
 #define DEFAULT_SHOW_BUFFER_STATS                      false
 // serdyt
 #define DEFAULT_NEURON_CONFIG							"neuron_config"
+#define DEFAULT_VOLT_LOG								0
+#define DEFAULT_SPIKE_LOG_FILE							"./log/spike.log"
+#define DEFAULT_VOLT_LOG_FILE							"./log/volt.log"
 
 //For neuron
 //#define MAX_NEURON_IN_PE 4 //calculated from neuron config file
@@ -108,12 +111,14 @@ using namespace std;
 #define DEFAULT_WEIGHT            0 //mV
 #define MAX_WEIGHT                20 //mV
 #define MIN_WEIGHT                0.3455 //mV
-#define DEFAULT_STEP				0.1 //ms
+#define DEFAULT_STEP				0.0005 //ms
+
+#define DEFAULT_CONSOLE_LOG_POLICY 0
 
 #define CLOCK_PERIOD 10
 
 // TODO by Fafa - this MUST be removed!!! Use only STL vectors instead!!!
-#define MAX_STATIC_DIM 32
+#define MAX_STATIC_DIM 45
 
 typedef unsigned int uint;
 
@@ -146,9 +151,18 @@ struct NoximGlobalParams {
 	static double qos;
 	static bool show_buffer_stats;
 
-	//serdyt
+	//NeuronNoxim
+
 	static char neuron_config_file[128];
-	//static int max_neuron_per_cluster; //calculated from neuron cofig file now
+	// 0 - show nothing;
+	// 1 - show memories;
+	// 2 - show packets;
+	static int consoleLogPolicy;
+	static FILE * spikeLogFile;
+	static int voltLogPolicy;
+	static FILE * voltLogFile;
+
+	static NeuronConfig * nConfig;
 };
 
 // NoximCoord -- XY coordinates type of the Tile inside the Mesh
@@ -164,7 +178,7 @@ public:
 
 // NoximFlitType -- Flit type enumeration
 enum NoximFlitType {
-	FLIT_TYPE_HEAD, FLIT_TYPE_BODY, FLIT_TYPE_TAIL
+	FLIT_TYPE_HEAD, FLIT_TYPE_BODY, FLIT_TYPE_TAIL, FLIT_TYPE_SINGLE
 };
 
 // NoximPayload -- Payload definition

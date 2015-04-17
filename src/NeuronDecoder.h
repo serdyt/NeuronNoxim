@@ -14,6 +14,7 @@
 #include "CAM.h"
 #include "NeuronMemory.h"
 #include "NeuronShiftRegister.h"
+#include "NoximStats.h"
 
 using namespace std;
 
@@ -26,6 +27,8 @@ public:
 
   sc_out<int> destIDout;
   sc_out<float> weightOut;
+
+  NoximPower power;
 
   void unpacker();
   void initComponents(map<sndCAMstruct, int > cam_, vector<float> mem_);

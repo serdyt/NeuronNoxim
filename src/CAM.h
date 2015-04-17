@@ -26,7 +26,8 @@ public:
 	sc_out<int> hit;
 
 	SC_CTOR(CAM){
-		SC_THREAD(CAMproc);
+		SC_METHOD(CAMproc);
+		//set_stack_size(0x5000);
 		sensitive<<clock.pos();
 	}
 
@@ -42,16 +43,17 @@ private:
 
 template <class T>
 void CAM<T>::CAMproc(){
-	while(true){
-		wait();
-		typename map<T, int>::iterator it = buffer.find(data.read());
+	//while(true){
+	//	wait();
+		//typename map<T, int>::iterator it = buffer.find(data.read());
+		auto it = buffer.find(data.read());
 		if (it != buffer.end()){
 			hit.write(it->second);
 		}
 		else{
 			hit.write(0);
 		}
-	}
+	//}
 }
 
 template <class T>

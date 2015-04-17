@@ -24,18 +24,20 @@ void NoximProcessingElement::rxProcess()
 	} else {
 		if (req_rx.read() == 1 - current_level_rx) {
 			NoximFlit flit_tmp = flit_rx.read();
-			if (flit_tmp.flit_type == FLIT_TYPE_TAIL) {
-				cout << sc_time_stamp().to_double() / 1000 << " Noxim PE "
-						<< local_id << " recives a flit (" << flit_tmp.src_id
-						<< "," << flit_tmp.src_neuron_id << ","
-						<< flit_tmp.dst_id << "," << flit_tmp.dst_neuron_id
-						<< ")" << " type " << flit_tmp.flit_type << endl;
+			if (flit_tmp.flit_type == FLIT_TYPE_TAIL || flit_tmp.flit_type == FLIT_TYPE_SINGLE) {
+				if (NoximGlobalParams::consoleLogPolicy > 1){
+					cout << sc_time_stamp().to_double() / 1000 << " Noxim PE "
+							<< local_id << " recives a flit (" << flit_tmp.src_id
+							<< "," << flit_tmp.src_neuron_id << ","
+							<< flit_tmp.dst_id << "," << flit_tmp.dst_neuron_id
+							<< ")" << " type " << flit_tmp.flit_type << endl;
+				}
 				NPErx.write(true);
 				NPEpacketIn.write(
 						NoximPacket(flit_tmp.src_id, flit_tmp.src_neuron_id,
 								flit_tmp.dst_id, flit_tmp.dst_neuron_id,
 								flit_tmp.timestamp, 0));
-				//packet size is not actually used, so led it be 0...
+				//packet size is not actually used, so let it be 0...
 			}
 
 			if (NoximGlobalParams::verbose_mode > VERBOSE_OFF) {
@@ -74,6 +76,12 @@ void NoximProcessingElement::txProcess()
 			1000 << ": ProcessingElement[" << local_id <<
 			"] SENDING " << flit << endl;
 		}
+		if (flit.flit_type == FLIT_TYPE_HEAD || flit.flit_type == FLIT_TYPE_SINGLE){
+			if (NoximGlobalParams::consoleLogPolicy > 1){
+				cout << sc_time_stamp().to_double()<<": ProcessingElement[" << local_id <<
+						"] SENDING flit to (" << flit.dst_id<<","<<flit.dst_neuron_id<<")"<<endl;
+			}
+		}
 		flit_tx->write(flit);	// Send the generated flit
 		current_level_tx = 1 - current_level_tx;	// Negate the old value for Alternating Bit Protocol (ABP)
 		req_tx.write(current_level_tx);
@@ -97,12 +105,14 @@ NoximFlit NoximProcessingElement::nextFlit()
     //  flit.payload     = DEFAULT_PAYLOAD;
     flit.use_low_voltage_path = packet.use_low_voltage_path;
 
-    if (packet.size == packet.flit_left)
-	flit.flit_type = FLIT_TYPE_HEAD;
+    if (packet.size == 1)
+    	flit.flit_type = FLIT_TYPE_SINGLE;
+    else if (packet.size == packet.flit_left)
+    	flit.flit_type = FLIT_TYPE_HEAD;
     else if (packet.flit_left == 1)
-	flit.flit_type = FLIT_TYPE_TAIL;
+    	flit.flit_type = FLIT_TYPE_TAIL;
     else
-	flit.flit_type = FLIT_TYPE_BODY;
+    	flit.flit_type = FLIT_TYPE_BODY;
 
     packet_queue.front().flit_left--;
     if (packet_queue.front().flit_left == 0)
@@ -120,7 +130,9 @@ bool NoximProcessingElement::canShot(NoximPacket & packet)
 		if (NPEtx.read()){
 			//TODO : check packet parameters!
 			packet = NPEpacketOut.read();
-			cout<<sc_time_stamp().to_double()/1000 <<" Noxim PE " <<local_id<< " produces a packet "<<packet<<endl;
+			if (NoximGlobalParams::consoleLogPolicy > 1){
+				cout<<sc_time_stamp().to_double()/1000 <<" Noxim PE " <<local_id<< " produces a packet "<<packet<<endl;
+			}
 			return true;
 		}
 		else{

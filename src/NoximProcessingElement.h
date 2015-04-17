@@ -36,7 +36,7 @@ SC_MODULE(NoximProcessingElement)
 
     sc_in < int >free_slots_neighbor;
 
-    NeuronPE NPE;
+    NeuronPE * NPE;
     sc_signal<bool> NPErx;
     sc_signal<bool> NPEtx;
     sc_signal<NoximPacket> NPEpacketIn;
@@ -76,15 +76,16 @@ SC_MODULE(NoximProcessingElement)
 
     // Constructor
     SC_HAS_PROCESS(NoximProcessingElement);
-    NoximProcessingElement(sc_module_name name_, NeuronConfig& nConfig_, int localID)
-    	: sc_module(name_), NPE("NPE", nConfig_, localID)
+    NoximProcessingElement(sc_module_name name_, int localID)
+    	: sc_module(name_)
     {
-    	NPE.clock(clock);
-    	NPE.reset(reset);
-    	NPE.rx(NPErx);
-    	NPE.tx(NPEtx);
-    	NPE.packetIn(NPEpacketIn);
-    	NPE.packetOut(NPEpacketOut);
+    	NPE = new NeuronPE("NPE", localID);
+    	NPE->clock(clock);
+    	NPE->reset(reset);
+    	NPE->rx(NPErx);
+    	NPE->tx(NPEtx);
+    	NPE->packetIn(NPEpacketIn);
+    	NPE->packetOut(NPEpacketOut);
 
 		SC_METHOD(rxProcess);
 		sensitive << reset;

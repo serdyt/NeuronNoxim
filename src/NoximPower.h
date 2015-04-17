@@ -62,6 +62,12 @@ class NoximPower {
     void EndToEnd();
     void Leakage();
 
+    void Decoding();
+    void Integration();
+    void Comparison();
+    void NArbitration();
+    void Encoding();
+
     bool LoadPowerData(const char *fname);
 
     double getPower() {
@@ -114,6 +120,12 @@ class NoximPower {
     static double pwr_link_lv;
     static double pwr_leakage;
     static double pwr_end2end;
+    //neurons
+    static double pwr_decoding; //memory + mux + sr
+    static double pwr_integration;
+    static double pwr_comparison;
+    static double pwr_encoding; //memory + sr + FSM
+    static double pwr_nArbitration; // ???
 
     static bool   power_data_loaded;
 

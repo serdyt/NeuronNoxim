@@ -10,7 +10,7 @@
 
 #include "NoximMain.h"
 
-NeuronConfig NeuronConfigParser(const char fname[]);
+NeuronConfig * NeuronConfigParser(const char fname[]);
 
 
 #endif /* SRC_NEURON_CONFIG_PARSER_H_ */

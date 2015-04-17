@@ -38,7 +38,7 @@ void NoximStats::receivedFlit(const double arrival_time,
 	i = chist.size() - 1;
     }
 
-    if (flit.flit_type == FLIT_TYPE_HEAD)
+    if (flit.flit_type == FLIT_TYPE_HEAD || flit.flit_type == FLIT_TYPE_SINGLE)
 	chist[i].delays.push_back(arrival_time - flit.timestamp);
 
     chist[i].total_received_flits++;
@@ -216,8 +216,7 @@ void NoximStats::showStats(int curr_node, std::ostream & out, bool header)
 	    << setw(10) << getAverageDelay(chist[i].src_id)
 	    << setw(10) << getMaxDelay(chist[i].src_id)
 	    << setw(15) << getAverageThroughput(chist[i].src_id)
-	    << setw(13) << getCommunicationEnergy(chist[i].src_id,
-						  curr_node)
+	    //<< setw(13) << getCommunicationEnergy(chist[i].src_id, curr_node)
 	    << setw(12) << chist[i].delays.size()
 	    << setw(12) << chist[i].total_received_flits << endl;
     }

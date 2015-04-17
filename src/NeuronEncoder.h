@@ -10,6 +10,7 @@
 
 #include "NeuronMemory.h"
 #include "NoximMain.h"
+#include "NoximStats.h"
 #include "NeuronShiftRegister.h"
 
 SC_MODULE(NeuronEncoder){
@@ -20,6 +21,8 @@ SC_MODULE(NeuronEncoder){
 	sc_out<bool> ack;
 	sc_out<bool> tx;
 	sc_out<NoximPacket> packetOut;
+
+	NoximPower power;
 
 	SC_HAS_PROCESS(NeuronEncoder);
 	NeuronEncoder(sc_module_name name_);

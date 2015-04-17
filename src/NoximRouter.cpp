@@ -82,7 +82,7 @@ void NoximRouter::txProcess()
 	    {
 	      NoximFlit flit = buffer[i].Front();
 
-	      if (flit.flit_type == FLIT_TYPE_HEAD) 
+	      if (flit.flit_type == FLIT_TYPE_HEAD || flit.flit_type == FLIT_TYPE_SINGLE)
 		{
 		  // prepare data for routing
 		  NoximRouteData route_data;
@@ -153,7 +153,7 @@ void NoximRouter::txProcess()
 		      if (flit.dst_id == local_id)
 			stats.power.EndToEnd();
 
-		      if (flit.flit_type == FLIT_TYPE_TAIL)
+		      if (flit.flit_type == FLIT_TYPE_TAIL || flit.flit_type == FLIT_TYPE_SINGLE)
 			reservation_table.release(o);
 
 		      // Update stats
@@ -185,7 +185,7 @@ void NoximRouter::txProcess()
 	    }
 	}
     }				// else
-  stats.power.Leakage();
+  //stats.power.Leakage();
 }
 
 NoximNoP_data NoximRouter::getCurrentNoPData() const
@@ -227,8 +227,7 @@ void NoximRouter::bufferMonitor()
     }
 }
 
-vector <
-    int >NoximRouter::routingFunction(const NoximRouteData & route_data)
+vector < int >NoximRouter::routingFunction(const NoximRouteData & route_data)
 {
     NoximCoord position = id2Coord(route_data.current_id);
     NoximCoord src_coord = id2Coord(route_data.src_id);

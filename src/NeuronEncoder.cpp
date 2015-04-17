@@ -45,7 +45,8 @@ NeuronEncoder::NeuronEncoder(sc_module_name name_)
 	SC_METHOD(txCalc);
 	sensitive<<txSrOut<<dstOut;
 
-	SC_THREAD(FSM);
+	SC_METHOD(FSM);
+	//set_stack_size(0x5000);
 	sensitive<<clock.pos();
 }
 
@@ -66,7 +67,7 @@ void NeuronEncoder::formPacket(){
 	//TODO : check that it works with size = 1
 	NoximPacket p(localID.read(), senderIDsrOut.read(),
 						dstOut.read().dstID, dstOut.read().dstNeurID,
-						sc_time_stamp().to_double() / 1000, 2);
+						sc_time_stamp().to_double() / 1000, 1);
 	packetOut.write(p);
 }
 
@@ -76,14 +77,15 @@ void NeuronEncoder::initComponents(vector<dstMemStruct> mem_, int blockSize_){
 }
 
 void NeuronEncoder::FSM() {
-	while (true) {
-		wait();
+	//while (true) {
+	//	wait();
 
 		switch (FSMstate) {
 		case IDLE: {
 			FSMlocalAck = false;
 			FSMlocalTx = false;
 			if(rx.read()){
+				power.Encoding();
 				FSMlocalAddr = 0;
 				FSMstate = SEND;
 				FSMlocalTx = true;
@@ -92,6 +94,7 @@ void NeuronEncoder::FSM() {
 			break;
 		}
 		case SEND: {
+			power.Encoding();
 			FSMlocalAddr++;
 			FSMlocalTx = true;
 			FSMlocalAck = false;
@@ -114,5 +117,5 @@ void NeuronEncoder::FSM() {
 		txFSMsr.write(FSMlocalTx);
 		ack.write(FSMlocalAck);
 		localMemAddr.write(FSMlocalAddr);
-	}
+	//}
 }

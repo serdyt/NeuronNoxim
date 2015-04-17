@@ -215,9 +215,23 @@ double NoximGlobalStats::getPower()
 {
     double power = 0.0;
 
+    double npower = 0.0;
+    double pepower = 0.0;
+
+    cout << endl << "********************" << endl;
+
     for (int y = 0; y < NoximGlobalParams::mesh_dim_y; y++)
 	for (int x = 0; x < NoximGlobalParams::mesh_dim_x; x++)
-	    power += noc->t[x][y]->r->getPower();
+	    {
+			power += noc->t[x][y]->r->getPower();
+			power += noc->t[x][y]->pe->NPE->getPower();
+			npower += noc->t[x][y]->r->getPower();
+			pepower += noc->t[x][y]->pe->NPE->getPower();
+			cout << x << "," << y << " " << noc->t[x][y]->r->getPower() << " " <<  noc->t[x][y]->pe->NPE->getPower() << endl;
+	    }
+
+    cout << npower << " " << pepower << endl;
+    cout << "********************" << endl;
 
     return power;
 }

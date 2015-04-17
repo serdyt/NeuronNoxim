@@ -5,6 +5,7 @@
 
 // TODO: to rewrite this block
 #include "systemc.h"
+#include "NoximStats.h"
 
 using namespace std;
 
@@ -38,6 +39,8 @@ SC_MODULE(NeuronArbiter)
   sc_out<int> senderID;
   sc_in<bool> ack;
   sc_out<bool> tx;
+
+  NoximPower power;
 
   SC_HAS_PROCESS(NeuronArbiter);
 

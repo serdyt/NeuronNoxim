@@ -3,11 +3,13 @@
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
-#include <regex>
+//#include <regex>
 
 using namespace std;
 
-NeuronConfig NeuronConfigParser(const char fname[]) {
+//TODO : add checks for valid values
+
+NeuronConfig * NeuronConfigParser(const char fname[]) {
 	ifstream infile(fname);
 	const string delimiter = ",";
 	const string neuronNew = "#";
@@ -30,20 +32,20 @@ NeuronConfig NeuronConfigParser(const char fname[]) {
 
 	string errLog;
 
-	NeuronConfig nConfig;
+	NeuronConfig * nConfig = new NeuronConfig();
 
-	nConfig.step = DEFAULT_STEP;
+	nConfig->step = DEFAULT_STEP;
 
-	nConfig.destinations.resize(NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y);
-	nConfig.sources.resize(NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y);
-	nConfig.parameters.resize(NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y);
+	nConfig->destinations.resize(NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y);
+	nConfig->sources.resize(NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y);
+	nConfig->parameters.resize(NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y);
 
 	if (!infile){
 		cout<<"No file"<<endl;
 		assert(0);
 	}
 
-	//TODO : rewrite with regexp maybe?
+	//TODO : rewrite with regexp maybe? or ... that string function dividing line into subsequences by delimiter...
 	while (getline(infile, line)) {
 		lineNum++;
 
@@ -102,24 +104,47 @@ NeuronConfig NeuronConfigParser(const char fname[]) {
 		} else if (type == GPARAM){
 			//divide a string into vector of substring divided by delimeter ","
 			//check each substring to be one of parameters
-			regex d(delimiter);
-			smatch m;
+
+			istringstream ss(line);
 			vector<string> params;
-			while (regex_search(line, m, d)) {
-				params.push_back(m.prefix().str());
-				line = m.suffix().str();
-			}
-			if (line.size() != 0){
-				params.push_back(line);
+			while (ss) {
+				string s;
+				if (!getline(ss, s, ','))
+					break;
+				params.push_back(s);
 			}
 
+			//regex floatValue("[-+]?([0-9]*\.[0-9]+)");
+
+			for (auto param : params) {
+				istringstream ss(param);
+				string s;
+				if (getline(ss, s, '=')) {
+					if (s == "step") {
+						getline(ss, s);
+						nConfig->step = atof(s.c_str());
+						/*
+						//regexp do not work on the server =]
+						smatch m;
+						if (regex_search(s, m, floatValue)) {
+							if (m.size() != 1){
+								cout << "Hm, wrong format in " << m.str() << " taking first match " << m[0].str() << endl;
+							}
+							nConfig->step = atof(m[0].str().c_str());
+						}
+						*/
+					}
+				}
+			}
+
+			/*
 			regex step("step=");
 			regex floatValue("[-+]?([0-9]*\.[0-9]+|[0-9]+)");
 			bool err = false;
 			for (auto x : params){
 				if (regex_search(x, m, step)){
 					if (regex_search(m.suffix().str(), m, floatValue)){
-						nConfig.step = atof(m.str().c_str());
+						nConfig->step = atof(m.str().c_str());
 					}
 					else{
 						cout<<"Hm, wrong format in "<<x<<endl;
@@ -128,7 +153,7 @@ NeuronConfig NeuronConfigParser(const char fname[]) {
 				else {
 					cout<<"Unknown parameter, or wrong format in "<<x<<endl;
 				}
-			}
+			}*/
 		}
 
 		//check that IDs are in the range
@@ -159,10 +184,10 @@ NeuronConfig NeuronConfigParser(const char fname[]) {
 				if (pos != string::npos){
 					string pName = token.substr(0, pos);
 					float pValue = atof(token.substr(pos + optParamDelimiter.length(), token.length()).c_str());
-					if (nConfig.parameters[curSrcCluster].size() <= curSrcNeuron) {
-						nConfig.parameters[curSrcCluster].resize(curSrcNeuron + 1);
+					if (nConfig->parameters[curSrcCluster].size() <= curSrcNeuron) {
+						nConfig->parameters[curSrcCluster].resize(curSrcNeuron + 1);
 					}
-					nConfig.parameters[curSrcCluster][curSrcNeuron].insert(pair<string, float>(pName, pValue));
+					nConfig->parameters[curSrcCluster][curSrcNeuron].insert(pair<string, float>(pName, pValue));
 				}
 				else{
 					cout<<"Invalid parameters format, missing '=' in line "<<lineNum<<endl;
@@ -177,15 +202,15 @@ NeuronConfig NeuronConfigParser(const char fname[]) {
 				//no check for valid value =/
 				float weight = atof(line.c_str());
 
-				if (nConfig.destinations[curSrcCluster].size() <= curSrcNeuron){
-					nConfig.destinations[curSrcCluster].resize(curSrcNeuron + 1);
+				if (nConfig->destinations[curSrcCluster].size() <= curSrcNeuron){
+					nConfig->destinations[curSrcCluster].resize(curSrcNeuron + 1);
 				}
-				nConfig.destinations[curSrcCluster][curSrcNeuron].push_back(triplet(clusterID, neuronID,weight));
+				nConfig->destinations[curSrcCluster][curSrcNeuron].push_back(triplet(clusterID, neuronID,weight));
 
-				if (nConfig.sources[clusterID].size() <= neuronID) {
-					nConfig.sources[clusterID].resize(neuronID + 1);
+				if (nConfig->sources[clusterID].size() <= neuronID) {
+					nConfig->sources[clusterID].resize(neuronID + 1);
 				}
-				nConfig.sources[clusterID][neuronID].push_back(triplet(curSrcCluster, curSrcNeuron, weight));
+				nConfig->sources[clusterID][neuronID].push_back(triplet(curSrcCluster, curSrcNeuron, weight));
 			}
 			else{
 				cout<<"Connection should have a weight. Line "<<lineNum<<endl;
@@ -194,23 +219,27 @@ NeuronConfig NeuronConfigParser(const char fname[]) {
 		}
 	}
 
-	nConfig.maxDest = 0;
-	for (connectIteratorClust cit = nConfig.destinations.begin(); cit != nConfig.destinations.end(); cit++){
-		for (connectIteratorNeur nit = cit->begin(); nit != cit->end(); nit++){
-			nConfig.maxDest = max(nConfig.maxDest, (int)nit->size());
+	nConfig->maxDest = 0;
+	for (auto cit : nConfig->destinations){
+		for (auto nit : cit){
+			nConfig->maxDest = max(nConfig->maxDest, (int)nit.size());
 		}
 	}
 
-	nConfig.maxSources = 0;
-	for (connectIteratorClust cit = nConfig.sources.begin(); cit != nConfig.sources.end(); cit++) {
-		for (connectIteratorNeur nit = cit->begin(); nit != cit->end(); nit++) {
-			nConfig.maxSources = max(nConfig.maxSources, (int) nit->size());
+	nConfig->maxSources = 0;
+	int c = 0;
+	for (auto cit : nConfig->sources) {
+		int n = 0;
+		for (auto nit : cit) {
+			nConfig->maxSources = max(nConfig->maxSources, (int) nit.size());
+			n++;
 		}
+		c++;
 	}
 
-	nConfig.maxNeurons = 0;
-	for (auto cit: nConfig.parameters){
-		nConfig.maxNeurons = max(nConfig.maxNeurons, (int)cit.size());
+	nConfig->maxNeurons = 0;
+	for (auto cit: nConfig->parameters){
+		nConfig->maxNeurons = max(nConfig->maxNeurons, (int)cit.size());
 	}
 
 	return nConfig;

@@ -57,7 +57,7 @@ SC_MODULE(NoximTile)
     // Constructor
 
     SC_HAS_PROCESS(NoximTile);
-    NoximTile(sc_module_name name_, NeuronConfig & nConfig_, int localID)
+    NoximTile(sc_module_name name_, int localID)
     	: sc_module(name_)
     {
 
@@ -95,7 +95,7 @@ SC_MODULE(NoximTile)
 	    (free_slots_neighbor_local);
 
 	// Processing Element pin assignments
-	pe = new NoximProcessingElement("ProcessingElement", nConfig_, localID);
+	pe = new NoximProcessingElement("ProcessingElement", localID);
 	pe->clock(clock);
 	pe->reset(reset);
 

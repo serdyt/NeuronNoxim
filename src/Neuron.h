@@ -2,6 +2,7 @@
 //Header of one neuron
 
 #include "NoximMain.h"
+#include "NoximStats.h"
 #include <fstream>
 using namespace std;
 
@@ -19,37 +20,14 @@ SC_MODULE(Neuron) {
 
   sc_out<bool> fire_flag; //indicate if the neuron will fire a spike or not
 
-  SC_CTOR(Neuron){
-		V_reset_tmp = DEFAULT_RESET_VOLTAGE;
-		V_th_tmp = DEFAULT_THRESHOLD_VOLTAGE;
-		E_tmp = DEFAULT_E;
-		tau_tmp = DEFAULT_TAU;
-		Iex_tmp = DEFAULT_IEX;
-		weight_tmp = DEFAULT_WEIGHT;
-		V_mem_tmp = DEFAULT_RESET_VOLTAGE;
-		reset_mem = true;
+  NoximPower power;
 
-		char fname [128] = "./log/";
-		char tileName [128];
-		strncpy(tileName, &this->name()[4], 12);
-		char neuronName [128];
-		strcpy(neuronName, &this->name()[39]);
-		strcat(fname, tileName);
-		strcat(fname, neuronName);
-		strcat(fname, ".log");
-		logFile.open(fname, fstream::out);
+  SC_HAS_PROCESS(Neuron);
 
-		SC_THREAD(log);
-		sensitive<<clock.pos();
-
-		SC_THREAD(leaky_integrator); //leaky integration
-		sensitive << clock.pos();
-
-		SC_METHOD(comparator); //compare and fire
-		sensitive << reset;
-		sensitive << clock.pos();
-	}
+  Neuron(sc_module_name _name);
   ~Neuron();
+
+  float getVolt();
 
 private:
 	float V_mem_tmp; //internal membrane potential of the neuron
@@ -58,9 +36,11 @@ private:
     float V_reset_tmp, V_th_tmp;
     float E_tmp, tau_tmp, Iex_tmp; 
     float weight_tmp;
-    ofstream logFile;
+
+    int logNumber;
+
+    string toSpikeLog;
 
     void leaky_integrator();
     void comparator();
-    void log();
 };

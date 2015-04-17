@@ -7,10 +7,22 @@
 
 #include "NeuronPE.h"
 
-NeuronPE::NeuronPE(sc_module_name name_, NeuronConfig& nConfig, int clusterID) :
-		sc_module(name_), decoder("Decoder"), arbiter("Arbiter", nConfig.maxNeurons),
-		encoder("Encoder"), mux("Mux", nConfig.maxNeurons), neurons("Neurons"), muxOut("muxOut")
-	{
+double NeuronPE::getPower()
+{
+	double pwr = 0;
+	pwr += decoder.power.getPower();
+	for (auto it = neurons.begin(); it != neurons.end(); it++){
+		pwr += it->power.getPower();
+	}
+	pwr += arbiter.power.getPower();
+	pwr += encoder.power.getPower();
+	return pwr;
+}
+
+NeuronPE::NeuronPE(sc_module_name name_, int clusterID) :
+		sc_module(name_), decoder("Decoder"), mux("Mux",NoximGlobalParams::nConfig->maxNeurons),
+		arbiter("Arbiter",NoximGlobalParams::nConfig->maxNeurons), encoder("Encoder")
+{
 
 	/*
 	 * Init decoder
@@ -18,15 +30,16 @@ NeuronPE::NeuronPE(sc_module_name name_, NeuronConfig& nConfig, int clusterID) :
 	map<sndCAMstruct, int> cam;
 	vector<float> weightMem;
 
-	for (auto nit = nConfig.sources[clusterID].begin(); nit != nConfig.sources[clusterID].end(); nit++){
-		for (auto dit = nit->begin(); dit != nit->end(); dit++){
-			static int i = 0;
+	int memoryAddress = 0;
+	int neuronNumber = 0;
+	for (auto nit :NoximGlobalParams::nConfig->sources[clusterID]){
+		for (auto dit : nit){
 			//sourceCluster, source neuron, destNeuron
-			//TODO : check this, or use static int to track neuron
-			cam[sndCAMstruct(dit->first, dit->second, nit - nConfig.sources[clusterID].begin())] = i;
-			i++;
-			weightMem.push_back(dit->third);
+			cam[sndCAMstruct(dit.clusterID, dit.neuronID, neuronNumber)] = memoryAddress;
+			memoryAddress++;
+			weightMem.push_back(dit.weight);
 		}
+		neuronNumber++;
 	}
 
 	if (cam.size() == 0){
@@ -39,45 +52,47 @@ NeuronPE::NeuronPE(sc_module_name name_, NeuronConfig& nConfig, int clusterID) :
 
 	decoder.initComponents(cam, weightMem);
 
-	cout<<"*** Processing element "<<clusterID<<" ***"<<endl;
-	cout << "Decoder CAM:" << endl;
-	for (auto a : cam) {
-		cout << a.first.srcID<<","<<a.first.srcNeurID<<","<< a.first.dstNeurID<<"->"<<a.second<<endl;
-	}
+	if (NoximGlobalParams::consoleLogPolicy > 0){
+		cout<<"*** Processing element "<<clusterID<<" ***"<<endl;
+		cout << "Decoder CAM:" << endl;
+		for (auto a : cam) {
+			cout << a.first.srcID<<","<<a.first.srcNeurID<<","<< a.first.dstNeurID<<"->"<<a.second<<endl;
+		}
 
-	cout << "Decoder memory:" << endl;
-	for (auto a : weightMem) {
-		cout << a << endl;
+		cout << "Decoder memory:" << endl;
+		for (auto a : weightMem) {
+			cout << a << endl;
+		}
 	}
 
 	cam.clear();
+	map<sndCAMstruct, int>().swap(cam);
 	weightMem.clear();
+	vector<float>().swap(weightMem);
 
 	/*
 	 * Init neurons
 	 */
 	//construct modules normally
-	neurons.init(nConfig.maxNeurons);
+	neurons.init(NoximGlobalParams::nConfig->maxNeurons);
 
-	fire_flags.init(nConfig.maxNeurons);
-	V_reset.init(nConfig.maxNeurons);
-	V_th.init(nConfig.maxNeurons);
-	E.init(nConfig.maxNeurons);
-	tau.init(nConfig.maxNeurons);
-	Iex.init(nConfig.maxNeurons);
-	muxOut.init(nConfig.maxNeurons);
+	fire_flags.init(NoximGlobalParams::nConfig->maxNeurons);
+	V_reset.init(NoximGlobalParams::nConfig->maxNeurons);
+	V_th.init(NoximGlobalParams::nConfig->maxNeurons);
+	E.init(NoximGlobalParams::nConfig->maxNeurons);
+	tau.init(NoximGlobalParams::nConfig->maxNeurons);
+	Iex.init(NoximGlobalParams::nConfig->maxNeurons);
+	muxOut.init(NoximGlobalParams::nConfig->maxNeurons);
 	for_each(V_reset.begin(), V_reset.end(), [](sc_signal<float>& a) {a.write(DEFAULT_RESET_VOLTAGE);});
 	for_each(V_th.begin(), V_th.end(), [](sc_signal<float>& a) {a.write(DEFAULT_THRESHOLD_VOLTAGE);});
 	for_each(E.begin(), E.end(), [](sc_signal<float>& a) {a.write(DEFAULT_E);});
 	for_each(tau.begin(), tau.end(), [](sc_signal<float>& a) {a.write(DEFAULT_TAU);});
 	for_each(Iex.begin(), Iex.end(), [](sc_signal<float>& a) {a.write(DEFAULT_IEX);});
 
-	step.write(nConfig.step);
+	step.write(NoximGlobalParams::nConfig->step);
 
-	for (int i = 0; i < nConfig.parameters[clusterID].size(); i++) {
-		cout<<"Neuron "<<i<<" ";
-		for (auto mit : nConfig.parameters[clusterID][i]) {
-			cout<<mit.first<< "="<<mit.second<<" ";
+	for (int i = 0; i <NoximGlobalParams::nConfig->parameters[clusterID].size(); i++) {
+		for (auto mit :NoximGlobalParams::nConfig->parameters[clusterID][i]) {
 			if (mit.first == "V_reset") {
 				V_reset[i].write(mit.second);
 			} else if (mit.first == "V_th") {
@@ -94,29 +109,31 @@ NeuronPE::NeuronPE(sc_module_name name_, NeuronConfig& nConfig, int clusterID) :
 						<< mit.first << endl;
 			}
 		}
-		cout<<endl;
 	}
 
 	/*
 	 * Init encoder
 	 */
 	vector<dstMemStruct> destMem;
-	destMem.resize(nConfig.maxNeurons * nConfig.maxDest, dstMemStruct(0,0,false));
+	destMem.resize(NoximGlobalParams::nConfig->maxNeurons *NoximGlobalParams::nConfig->maxDest, dstMemStruct(0,0,false));
 
-	for (int i = 0; i < nConfig.destinations[clusterID].size(); i++){
-		for (int j = 0; j < nConfig.destinations[clusterID][i].size(); j++){
-			destMem[i*nConfig.maxDest+j] = dstMemStruct(nConfig.destinations[clusterID][i][j].first, nConfig.destinations[clusterID][i][j].second, true);
+	for (int i = 0; i <NoximGlobalParams::nConfig->destinations[clusterID].size(); i++){
+		for (int j = 0; j <NoximGlobalParams::nConfig->destinations[clusterID][i].size(); j++){
+			destMem[i*NoximGlobalParams::nConfig->maxDest+j] = dstMemStruct(NoximGlobalParams::nConfig->destinations[clusterID][i][j].clusterID,NoximGlobalParams::nConfig->destinations[clusterID][i][j].neuronID, true);
 		}
 	}
 
-	encoder.initComponents(destMem, nConfig.maxDest);
+	encoder.initComponents(destMem,NoximGlobalParams::nConfig->maxDest);
 
-	cout<<"Encoder memory:"<<endl;
-	for (auto a : destMem){
-		cout<<a.dstID<<","<<a.dstNeurID<<","<<a.exist<<endl;
+	if (NoximGlobalParams::consoleLogPolicy > 0){
+		cout<<"Encoder memory:"<<endl;
+		for (auto a : destMem){
+			cout<<a.dstID<<","<<a.dstNeurID<<","<<a.exist<<endl;
+		}
 	}
 
 	destMem.clear();
+	vector<dstMemStruct>().swap(destMem);
 
 	/*
 	 * Connect modules

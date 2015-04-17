@@ -11,9 +11,9 @@
 #include "systemc.h"
 
 struct sndCAMstruct {
-	int srcID;
-	int srcNeurID;
-	int dstNeurID;
+	unsigned int srcID;
+	unsigned int srcNeurID;
+	unsigned int dstNeurID;
 
 	sndCAMstruct(){};
 
@@ -28,15 +28,31 @@ struct sndCAMstruct {
 	}
 
 	inline bool operator >(const sndCAMstruct & rec) const {
-		long long int a = srcID<<64 + srcNeurID<<32 + dstNeurID;
-		long long int b = rec.srcID<<64 + rec.srcNeurID<<32 + rec.dstNeurID;
-		return (a>b);
+		if (srcID > rec.srcID) return true;
+		else if (srcID < rec.srcID) return false;
+		else if (srcNeurID > rec.srcNeurID) return true;
+		else if (srcNeurID < rec.srcNeurID) return false;
+		else if (dstNeurID > rec.dstNeurID) return true;
+		else if (dstNeurID < rec.dstNeurID) return false;
+		else return false;
+
+		//unsigned long long int a = srcID<<48 + srcNeurID<<32 + dstNeurID;
+		//unsigned long long int b = rec.srcID<<48 + rec.srcNeurID<<32 + rec.dstNeurID;
+		//return (a>b);
 	}
 
 	inline bool operator <(const sndCAMstruct & rec) const {
-		long long int a = srcID<<64 + srcNeurID<<32 + dstNeurID;
-				long long int b = rec.srcID<<64 + rec.srcNeurID<<32 + rec.dstNeurID;
-		return (a<b);
+		if (srcID < rec.srcID) return true;
+		else if (srcID > rec.srcID) return false;
+		else if (srcNeurID < rec.srcNeurID) return true;
+		else if (srcNeurID > rec.srcNeurID) return false;
+		else if (dstNeurID < rec.dstNeurID) return true;
+		else if (dstNeurID > rec.dstNeurID) return false;
+		else return false;
+
+		//unsigned long long int a = srcID<<48 + srcNeurID<<32 + dstNeurID;
+		//unsigned long long int b = rec.srcID<<48 + rec.srcNeurID<<32 + rec.dstNeurID;
+		//return (a<b);
 	}
 
 	inline sndCAMstruct& operator =(const sndCAMstruct& rec) {

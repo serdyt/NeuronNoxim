@@ -10,19 +10,17 @@
 #include <map>
 #include <string>
 
-#define DEFAULT_STEP 0.1
-
 using namespace std;
 struct triplet{
-	int first;
-	int second;
-	float third;
+	int clusterID;
+	int neuronID;
+	float weight;
 
-	triplet(): first(0), second(0), third(0){
+	triplet(): clusterID(0), neuronID(0), weight(0){
 	}
 
-	triplet(int _first, int _second, float _third):
-		first(_first), second(_second), third(_third){
+	triplet(int _clusterID, int _neuronID, float _weight):
+		clusterID(_clusterID), neuronID(_neuronID), weight(_weight){
 	}
 };
 
