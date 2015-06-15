@@ -2,35 +2,32 @@
 //Main code of the arbiter module
 #include "NeuronArbiter.h"
 
-void NeuronArbiter::roundRobin(){
-	//while(true){
-	//	wait();
-		if (ack.read()){
-			currTx = false;
-			sendMutex.unlock();
-		}
-		for (int i = currNeuron+1; i < size; i++){
-			if (counters[i] > 0){
-				if (sendMutex.trylock(i) != -1){
-					currTx = true;
-					currNeuron = i;
-					counters[i]--;
-				}
+void NeuronArbiter::roundRobin() {
+	if (ack.read()) {
+		currTx = false;
+		sendMutex.unlock();
+	}
+	for (int i = currNeuron + 1; i < size; i++) {
+		if (counters[i] > 0) {
+			if (sendMutex.trylock(i) != -1) {
+				currTx = true;
+				currNeuron = i;
+				counters[i]--;
 			}
 		}
-		for (int i = 0; i < currNeuron+1; i++) {
-			if (counters[i] > 0) {
-				if (sendMutex.trylock(i) != -1) {
-					currTx = true;
-					currNeuron = i;
-					counters[i]--;
-				}
+	}
+	for (int i = 0; i < currNeuron + 1; i++) {
+		if (counters[i] > 0) {
+			if (sendMutex.trylock(i) != -1) {
+				currTx = true;
+				currNeuron = i;
+				counters[i]--;
 			}
 		}
-		senderID.write(currNeuron);
-		tx.write(currTx);
-		power.NArbitration();
-	//}
+	}
+	senderID.write(currNeuron);
+	tx.write(currTx);
+	power.NArbitration();
 }
 
 NeuronArbiter::NeuronArbiter(sc_module_name name_, int size_)
@@ -44,21 +41,16 @@ NeuronArbiter::NeuronArbiter(sc_module_name name_, int size_)
 	sendMutex.unlock();
     //inventories: react to fire flags from neurons
     SC_METHOD(inv);
-    //set_stack_size(0x5000);
     sensitive<<clock.pos();
 
     SC_METHOD(roundRobin);
-    //set_stack_size(0x5000);
     sensitive<<clock.pos();
   }
 
 void NeuronArbiter::inv() {
-	//while (true) {
-	//	wait();
 		for (int i = 0; i < size; i++){
 			if (fire_flag[i]->read()){
 				counters[i]++;
 			}
 		}
-	//}
 }

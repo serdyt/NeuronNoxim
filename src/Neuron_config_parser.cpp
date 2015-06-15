@@ -30,15 +30,20 @@ NeuronConfig * NeuronConfigParser(const char fname[]) {
 	int clusterID;
 	int neuronID;
 
+	vector<int> currentAxon;
+
 	string errLog;
 
 	NeuronConfig * nConfig = new NeuronConfig();
 
 	nConfig->step = DEFAULT_STEP;
 
-	nConfig->destinations.resize(NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y);
-	nConfig->sources.resize(NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y);
+	nConfig->srcToDst.resize(NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y);
+	nConfig->dstToSrc.resize(NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y);
 	nConfig->parameters.resize(NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y);
+
+	// -1 where we have no axons, as I do currentAxon++ without checks
+	currentAxon.resize(NoximGlobalParams::mesh_dim_x * NoximGlobalParams::mesh_dim_y, -1);
 
 	if (!infile){
 		cout<<"No file"<<endl;
@@ -46,6 +51,8 @@ NeuronConfig * NeuronConfigParser(const char fname[]) {
 	}
 
 	//TODO : rewrite with regexp maybe? or ... that string function dividing line into subsequences by delimiter...
+	// hm, no, regexp won't work on the server O_o
+
 	while (getline(infile, line)) {
 		lineNum++;
 
@@ -102,7 +109,7 @@ NeuronConfig * NeuronConfigParser(const char fname[]) {
 				assert(0);
 			}
 		} else if (type == GPARAM){
-			//divide a string into vector of substring divided by delimeter ","
+			//divide a string into vector of substring divided by delimiter ","
 			//check each substring to be one of parameters
 
 			istringstream ss(line);
@@ -154,6 +161,7 @@ NeuronConfig * NeuronConfigParser(const char fname[]) {
 					cout<<"Unknown parameter, or wrong format in "<<x<<endl;
 				}
 			}*/
+
 		}
 
 		//check that IDs are in the range
@@ -184,9 +192,6 @@ NeuronConfig * NeuronConfigParser(const char fname[]) {
 				if (pos != string::npos){
 					string pName = token.substr(0, pos);
 					float pValue = atof(token.substr(pos + optParamDelimiter.length(), token.length()).c_str());
-					if (nConfig->parameters[curSrcCluster].size() <= curSrcNeuron) {
-						nConfig->parameters[curSrcCluster].resize(curSrcNeuron + 1);
-					}
 					nConfig->parameters[curSrcCluster][curSrcNeuron].insert(pair<string, float>(pName, pValue));
 				}
 				else{
@@ -198,43 +203,56 @@ NeuronConfig * NeuronConfigParser(const char fname[]) {
 		}
 		//add a new destination point for a neuron
 		else if (type == NDEST) {
+
 			if (line.size() != 0){
 				//no check for valid value =/
 				float weight = atof(line.c_str());
 
-				if (nConfig->destinations[curSrcCluster].size() <= curSrcNeuron){
-					nConfig->destinations[curSrcCluster].resize(curSrcNeuron + 1);
+				if (nConfig->srcToDst[curSrcCluster][curSrcNeuron].find(clusterID) != nConfig->srcToDst[curSrcCluster][curSrcNeuron].end()){
+					nConfig->srcToDst[curSrcCluster][curSrcNeuron][clusterID].blockSize++;
+					nConfig->srcToDst[curSrcCluster][curSrcNeuron][clusterID].data.push_back(pair<int, float>(neuronID, weight));
 				}
-				nConfig->destinations[curSrcCluster][curSrcNeuron].push_back(triplet(clusterID, neuronID,weight));
+				else{
+					currentAxon[clusterID]++;
+					nConfig->srcToDst[curSrcCluster][curSrcNeuron][clusterID].axonID = currentAxon[clusterID];
+					nConfig->srcToDst[curSrcCluster][curSrcNeuron][clusterID].blockSize = 1;
+					nConfig->srcToDst[curSrcCluster][curSrcNeuron][clusterID].data.push_back(pair<int, float>(neuronID, weight));
 
-				if (nConfig->sources[clusterID].size() <= neuronID) {
-					nConfig->sources[clusterID].resize(neuronID + 1);
 				}
-				nConfig->sources[clusterID][neuronID].push_back(triplet(curSrcCluster, curSrcNeuron, weight));
+
+				nConfig->dstToSrc[clusterID][currentAxon[clusterID]].blockSize++;
+				nConfig->dstToSrc[clusterID][currentAxon[clusterID]].data.push_back(pair<int, float>(neuronID, weight)) ;
 			}
 			else{
 				cout<<"Connection should have a weight. Line "<<lineNum<<endl;
 				assert(0);
 			}
+
 		}
 	}
 
-	nConfig->maxDest = 0;
-	for (auto cit : nConfig->destinations){
+	nConfig->maxDestPerNeuron = 0;
+	for (auto cit : nConfig->srcToDst){
+		int offsetRecords = 0;
 		for (auto nit : cit){
-			nConfig->maxDest = max(nConfig->maxDest, (int)nit.size());
+			for (auto vit : nit.second){
+				nConfig->maxDestPerNeuron = max(nConfig->maxDestPerNeuron, vit.second.blockSize);
+			}
+			offsetRecords += nit.second.size();
 		}
+		nConfig->maxEncoderOffsetRecords = max(nConfig->maxEncoderOffsetRecords, offsetRecords);
 	}
 
-	nConfig->maxSources = 0;
-	int c = 0;
-	for (auto cit : nConfig->sources) {
-		int n = 0;
+
+
+	nConfig->maxSourcesPerNeuron = 0;
+	for (auto cit : nConfig->dstToSrc) {
+		int offsetRecords = 0;
 		for (auto nit : cit) {
-			nConfig->maxSources = max(nConfig->maxSources, (int) nit.size());
-			n++;
+			nConfig->maxSourcesPerNeuron = max(nConfig->maxSourcesPerNeuron, nit.second.blockSize);
+			offsetRecords += nit.second.blockSize;
 		}
-		c++;
+		nConfig->maxDecoderOffsetRecords = max(nConfig->maxDecoderOffsetRecords, offsetRecords);
 	}
 
 	nConfig->maxNeurons = 0;

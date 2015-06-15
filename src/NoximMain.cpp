@@ -72,8 +72,8 @@ int sc_main(int arg_num, char *arg_vet[])
     NoximGlobalParams::nConfig = NeuronConfigParser(NoximGlobalParams::neuron_config_file);
     cout << "Simulation step " <<NoximGlobalParams::nConfig->step << endl;
 	cout << "Neurons per cluster " <<NoximGlobalParams::nConfig->maxNeurons << endl;
-	cout << "Maxdest " <<NoximGlobalParams::nConfig->maxDest << endl;
-	cout << "Maxsource "<<NoximGlobalParams::nConfig->maxSources<<endl;
+	cout << "Maxdest " <<NoximGlobalParams::nConfig->maxDestPerNeuron << endl;
+	cout << "Maxsource "<<NoximGlobalParams::nConfig->maxSourcesPerNeuron<<endl;
 
     // Signals
     sc_clock clock("clock", 1, SC_NS);

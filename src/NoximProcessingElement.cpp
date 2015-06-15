@@ -28,15 +28,12 @@ void NoximProcessingElement::rxProcess()
 				if (NoximGlobalParams::consoleLogPolicy > 1){
 					cout << sc_time_stamp().to_double() / 1000 << " Noxim PE "
 							<< local_id << " recives a flit (" << flit_tmp.src_id
-							<< "," << flit_tmp.src_neuron_id << ","
-							<< flit_tmp.dst_id << "," << flit_tmp.dst_neuron_id
+							<< "," << flit_tmp.dst_id << "," << flit_tmp.axon_id
 							<< ")" << " type " << flit_tmp.flit_type << endl;
 				}
 				NPErx.write(true);
 				NPEpacketIn.write(
-						NoximPacket(flit_tmp.src_id, flit_tmp.src_neuron_id,
-								flit_tmp.dst_id, flit_tmp.dst_neuron_id,
-								flit_tmp.timestamp, 0));
+						NoximPacket(flit_tmp.src_id, flit_tmp.dst_id, flit_tmp.axon_id, flit_tmp.timestamp, 0));
 				//packet size is not actually used, so let it be 0...
 			}
 
@@ -77,10 +74,10 @@ void NoximProcessingElement::txProcess()
 			"] SENDING " << flit << endl;
 		}
 		if (flit.flit_type == FLIT_TYPE_HEAD || flit.flit_type == FLIT_TYPE_SINGLE){
-			if (NoximGlobalParams::consoleLogPolicy > 1){
-				cout << sc_time_stamp().to_double()<<": ProcessingElement[" << local_id <<
-						"] SENDING flit to (" << flit.dst_id<<","<<flit.dst_neuron_id<<")"<<endl;
-			}
+//			if (NoximGlobalParams::consoleLogPolicy > 1){
+//				cout << sc_time_stamp().to_double()<<": ProcessingElement[" << local_id <<
+//						"] SENDING flit to (d,a) : (" << flit.dst_id<<","<<flit.axon_id<<")"<<endl;
+//			}
 		}
 		flit_tx->write(flit);	// Send the generated flit
 		current_level_tx = 1 - current_level_tx;	// Negate the old value for Alternating Bit Protocol (ABP)
@@ -97,8 +94,7 @@ NoximFlit NoximProcessingElement::nextFlit()
 
     flit.src_id = packet.src_id;
     flit.dst_id = packet.dst_id;
-    flit.src_neuron_id = packet.src_neur_id;
-    flit.dst_neuron_id = packet.dst_neur_id;
+    flit.axon_id = packet.axon_id;
     flit.timestamp = packet.timestamp;
     flit.sequence_no = packet.size - packet.flit_left;
     flit.hop_no = 0;
@@ -196,8 +192,8 @@ bool NoximProcessingElement::canShot(NoximPacket & packet)
 	if (shot) {
 	    for (unsigned int i = 0; i < dst_prob.size(); i++) {
 		if (prob < dst_prob[i].second) {
-		    packet.make(local_id, dst_prob[i].first, now,
-				getRandomSize());
+		    //TODO : update this to axon [acket type!
+			packet.make(local_id, dst_prob[i].first, now,getRandomSize());
 		    packet.use_low_voltage_path = use_low_voltage_path[i];
 		    break;
 		}

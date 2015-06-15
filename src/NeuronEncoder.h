@@ -17,44 +17,52 @@ SC_MODULE(NeuronEncoder){
 	sc_in_clk clock;
 	sc_in<bool> rx;
 	sc_in<int> senderID;
-	sc_in<int> localID;
-	sc_out<bool> ack;
+	sc_in<int> localClusterID;
+	sc_out<bool> neuronAck;
 	sc_out<bool> tx;
 	sc_out<NoximPacket> packetOut;
+
+	sc_out<bool> localAxonTx;
+	sc_out<int> localAxonID;
+	sc_in<bool> localAxonAck;
 
 	NoximPower power;
 
 	SC_HAS_PROCESS(NeuronEncoder);
 	NeuronEncoder(sc_module_name name_);
-	void initComponents(vector<dstMemStruct> mem_, int blockSize_);
+	void initComponents(vector<dstOffsetMemStruct> memOffset_ ,vector<dstMemStruct> memDest_);
 
 private:
-	NeuronMemory<dstMemStruct> mem;
-	ShiftRegister<bool, 1> txSr;
-	ShiftRegister<int, 1> senderIDsr;
+	NeuronMemory<dstMemStruct> memDest;
+	NeuronMemory<dstOffsetMemStruct> memOffset;
 
-	sc_signal<int> offset;
+	ShiftRegister<bool, 1> txSr;
+	ShiftRegister<bool, 1> localAxonTxSr;
+
 	sc_signal<int> localMemAddr;
 	sc_signal<int> memAddr;
 	sc_signal<int> dstID;
-	sc_signal<int> dstNeurID;
-	sc_signal<bool> txFSMsr;
-	sc_signal<dstMemStruct> dstOut;
-	sc_signal<bool> memWrite;
-	sc_signal<int> senderIDsrOut;
-	sc_signal<bool> txSrOut;
+	sc_signal<int> dstAxon;
+	sc_signal<bool> FSMtx;
+	sc_signal<bool> FSMsrAxonTx;
+	sc_signal<dstMemStruct> memDestOut;
+	sc_signal<dstOffsetMemStruct> memOffsetOut;
+	sc_signal<bool> memDestWrite;
+	sc_signal<bool> memOffsetWrite;
 
-	int blockSize;
+	int FSMlocalN;
 	int FSMlocalAddr;
-	bool FSMlocalAck;
+	int FSMoffset;
+	bool FSMlocalNeuronAck;
 	bool FSMlocalTx;
-	enum {IDLE, SEND, STOP} FSMstate;
+	bool FSMlocalL;
+
+	bool FSMlocalAxonTx;
+	enum {IDLE, START, SEND, LOCAL, SENDACK, STOP} FSMstate;
 
 	void FSM();
-	void memAddrCalc();
-	void offsetCalc();
+	//void memAddrCalc();
 	void formPacket();
-	void txCalc();
 };
 
 #endif /* SRC_NEURONENCODER_H_ */

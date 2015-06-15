@@ -55,7 +55,7 @@ void NeuronMemory<T>::memoryProc() {
 	//while (true) {
 	//	wait();
 		if (address.read() > buffer.size()){
-			cout<< "Wow, wow, wrong input address " << address.read() <<" to the memory"<<endl;
+			cout<< "Wow, wow, wrong input address " << address.read() <<" to the memory "<< this->name() <<endl;
 			assert(0);
 		}
 		//cout<< sc_time_stamp() << " Memory received " << address.read() << " output " << buffer[address.read()] <<endl;
@@ -66,5 +66,4 @@ void NeuronMemory<T>::memoryProc() {
 		}
 	//}
 }
-
 #endif /* SRC_MEMORY_H_ */

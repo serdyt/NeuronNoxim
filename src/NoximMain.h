@@ -15,7 +15,6 @@
 #include "systemc.h"
 #include "Neuron_config.h"
 #include <vector>
-#include "sndCAMstruct.h"
 using namespace std;
 
 // Define the directions as numbers
@@ -191,45 +190,113 @@ struct NoximPayload {
 };
 
 struct dstMemStruct{
-	int dstID;
-	int dstNeurID;
-	bool exist;
+	int dstCluster;
+	int dstAxon;
 
-	dstMemStruct(int dsdID_ = 0, int dstNeurID_ = 0, bool exist_ = false)
-		: dstID(dsdID_), dstNeurID(dstNeurID_), exist(exist_)
+	dstMemStruct(int dstID_ = 0, int dstAxon_ = 0)
+		: dstCluster(dstID_), dstAxon(dstAxon_)
 	{
 	}
 
 	inline bool operator ==(const dstMemStruct & mem) const {
-		return (mem.dstID == dstID && mem.dstNeurID == dstNeurID && mem.exist == exist);
+		return (mem.dstCluster == dstCluster && mem.dstAxon == dstAxon);
 	}
 
 	inline dstMemStruct& operator =(const dstMemStruct & mem) {
-		dstID = mem.dstID;
-		dstNeurID = mem.dstNeurID;
-		exist = mem.exist;
+		dstCluster = mem.dstCluster;
+		dstAxon = mem.dstAxon;
 		return *this;
 	}
 
 	inline friend void sc_trace(sc_trace_file *tf, const dstMemStruct & mem,
 			const std::string & NAME) {
-		sc_trace(tf, mem.dstID, NAME + "dstID");
-		sc_trace(tf, mem.dstNeurID, NAME + "dstNeurID");
-		sc_trace(tf, mem.exist, NAME + "exist");
+		sc_trace(tf, mem.dstCluster, NAME + "dstID");
+		sc_trace(tf, mem.dstAxon, NAME + "dstAxon");
 	}
 
 	inline friend ostream& operator <<(ostream& os, dstMemStruct const & mem) {
-		os << "(" << mem.dstID << "," << mem.dstNeurID << "," << mem.exist <<")";
+		os << "(" << mem.dstCluster << "," << mem.dstAxon <<")";
 		return os;
 	}
 };
+
+struct dstOffsetMemStruct{
+	int offset;
+	int N;
+	bool local;
+
+	dstOffsetMemStruct(int offset_ = 0, int N_ = 0, bool local_ = false)
+		: offset(offset_), N(N_), local(local_)
+	{
+	}
+
+	inline bool operator ==(const dstOffsetMemStruct & mem) const {
+		return (mem.offset == offset && mem.N == N &&
+				mem.local == local);
+	}
+
+	inline dstOffsetMemStruct& operator =(const dstOffsetMemStruct & mem) {
+		offset = mem.offset;
+		N = mem.N;
+		local = mem.local;
+		return *this;
+	}
+
+	inline friend void sc_trace(sc_trace_file *tf, const dstOffsetMemStruct & mem,
+			const std::string & NAME) {
+		sc_trace(tf, mem.offset, NAME + "offset");
+		sc_trace(tf, mem.N, NAME + "N");
+		sc_trace(tf, mem.local, NAME + "local");
+	}
+
+	inline friend ostream& operator <<(ostream& os, dstOffsetMemStruct const & mem) {
+		os << "(" << mem.offset << "," << mem.N << ","
+				  << mem.local <<")";
+		return os;
+	}
+};
+
+template <class T, class F>
+struct twoFieldMemStruct{
+	 pair<T,F> content;
+
+	 twoFieldMemStruct(){
+	 }
+
+	 twoFieldMemStruct(T first, F second): content(first, second)
+	 {	 }
+
+	 twoFieldMemStruct(pair<T,F> _content) : content(_content)
+	 { }
+
+	 inline bool operator ==(const twoFieldMemStruct & mem) const {
+	 		return (mem.content.first == content.first && mem.content.second == content.second);
+	 }
+
+	 inline twoFieldMemStruct& operator =(const twoFieldMemStruct & mem) {
+		 content.first = mem.content.first;
+		 content.second = mem.content.second;
+		 return *this;
+	 }
+
+	 inline friend void sc_trace(sc_trace_file *tf, const twoFieldMemStruct & mem,
+	 			const std::string & NAME) {
+		 sc_trace(tf, mem.content.first, NAME + "dstID");
+		 sc_trace(tf, mem.content.second, NAME + "dstNeurID");
+	 }
+
+	 inline friend ostream& operator <<(ostream& os, twoFieldMemStruct const & mem) {
+	 		os << "(" << mem.content.first << "," << mem.content.second << ")";
+	 		return os;
+	 }
+};
+
 
 // NoximPacket -- Packet definition
 struct NoximPacket {
 	int src_id;
 	int dst_id;
-	int src_neur_id;
-	int dst_neur_id;
+	int axon_id;
 	double timestamp;		// SC timestamp at packet generation
 	int size;
 	int flit_left;		// Number of remaining flits inside the packet
@@ -239,42 +306,37 @@ struct NoximPacket {
 	NoximPacket() {
 	}
 
-	NoximPacket(const int s, const int d, const double ts, const int sz) {
-		make(s, d, ts, sz);
+	NoximPacket(const int _src_id, const int _dst_id, const double _timestamp, const int _size) {
+		make(_src_id, _dst_id, _timestamp, _size);
 	}
 
-	void make(const int s, const int d, const double ts, const int sz) {
-		src_id = s;
-		dst_id = d;
-		timestamp = ts;
-		size = sz;
-		flit_left = sz;
+	void make(const int _src_id ,const int _dst_id, const double _timestamp, const int _size) {
+		src_id = _src_id;
+		dst_id = _dst_id;
+		timestamp = _timestamp;
+		size = _size;
+		flit_left = _size;
 		use_low_voltage_path = false;
 	}
 
-	NoximPacket(const int srcID_, const int srcNeurID_, const int dstID_,
-			const int dstNeurID_, const double ts_, const int sz_) {
-		src_id = srcID_;
-		src_neur_id = srcNeurID_;
-		dst_id = dstID_;
-		dst_neur_id = dstNeurID_;
-		timestamp = ts_;
-		size = sz_;
-		flit_left = sz_;
+	NoximPacket(const int _src_id, const int _dst_id, const int _axon_id, const double _timestamp, const int _size) {
+		src_id = _src_id;
+		dst_id = _dst_id;
+		axon_id = _axon_id;
+		timestamp = _timestamp;
+		size = _size;
+		flit_left = _size;
 		use_low_voltage_path = false;
 	}
 
 	inline bool operator ==(const NoximPacket & pack) const {
-		return (pack.src_id == src_id && pack.dst_id == dst_id
-				&& pack.src_neur_id == src_neur_id
-				&& pack.dst_neur_id == dst_neur_id);
+		return (pack.axon_id == axon_id && pack.dst_id == dst_id && pack.src_id == src_id);
 	}
 
 	inline NoximPacket& operator =(const NoximPacket& pack) {
 		src_id = pack.src_id;
+		axon_id = pack.axon_id;
 		dst_id = pack.dst_id;
-		src_neur_id = pack.src_neur_id;
-		dst_neur_id = pack.dst_neur_id;
 		timestamp = pack.timestamp;
 		size = pack.size;
 		flit_left = pack.flit_left;
@@ -284,14 +346,12 @@ struct NoximPacket {
 
 	 inline friend void sc_trace(sc_trace_file *tf, const NoximPacket & p, const std::string & NAME) {
 		 sc_trace(tf,p.src_id, NAME + "src_id");
+		 sc_trace(tf,p.axon_id, NAME + "axon_id");
 		 sc_trace(tf,p.dst_id, NAME + "dst_id");
-		 sc_trace(tf,p.src_neur_id, NAME + "src_neur_id");
-		 sc_trace(tf,p.dst_neur_id, NAME + "dst_neur_id");
 	 }
 
 	 inline friend ostream& operator << (ostream& os, NoximPacket const & pack) {
-		 os << "(" << pack.src_id << "," << pack.src_neur_id << ")";
-		 os << "(" << pack.dst_id << "," << pack.dst_neur_id << ")";
+		 os << "(s,d,a) : (" << pack.src_id << "," << pack.dst_id << "," << pack.axon_id <<")";
 	 return os;
 	 }
 };
@@ -337,8 +397,7 @@ struct NoximNoP_data {
 struct NoximFlit {
 	int src_id;
 	int dst_id;
-	int src_neuron_id;
-	int dst_neuron_id;
+	int axon_id;
 	NoximFlitType flit_type;// The flit type (FLIT_TYPE_HEAD, FLIT_TYPE_BODY, FLIT_TYPE_TAIL)
 	int sequence_no;		// The sequence number of the flit inside the packet
 	NoximPayload payload;	// Optional payload
@@ -348,7 +407,7 @@ struct NoximFlit {
 
 	inline bool operator ==(const NoximFlit & flit) const {
 		return (flit.src_id == src_id && flit.dst_id == dst_id
-				&& flit.src_neuron_id == src_neuron_id && flit.dst_neuron_id == flit.dst_neuron_id
+				&& flit.axon_id == axon_id
 				&& flit.flit_type == flit_type
 				&& flit.sequence_no == sequence_no && flit.payload == payload
 				&& flit.timestamp == timestamp && flit.hop_no == hop_no

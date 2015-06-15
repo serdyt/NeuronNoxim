@@ -19,56 +19,88 @@ double NeuronPE::getPower()
 	return pwr;
 }
 
+void NeuronPE::FIFOctrl(){
+	//TODO : FIFO size is not limited yet!!!
+	if (rx.read()){
+		FIFO.push(packetIn.read().axon_id);
+		localAxonAck.write(false);
+	}
+	else if(localAxonRx.read()){
+		FIFO.push(localAxon);
+		localAxonAck.write(true);
+	}
+	else{
+		localAxonAck.write(false);
+	}
+
+	if (decoderAck.read()){
+		if (FIFO.size() != 0){
+			FIFO.pop();
+		}
+	}
+
+	if (FIFO.size() != 0){
+		FIFOctrlReady.write(true);
+		FIFOaxonOut.write(FIFO.front());
+	}
+	else{
+		FIFOctrlReady.write(false);
+		FIFOaxonOut.write(0);
+	}
+
+	FIFOmax = (FIFOmax < FIFO.size()) ? FIFO.size() : FIFOmax;
+}
+
+
 NeuronPE::NeuronPE(sc_module_name name_, int clusterID) :
 		sc_module(name_), decoder("Decoder"), mux("Mux",NoximGlobalParams::nConfig->maxNeurons),
 		arbiter("Arbiter",NoximGlobalParams::nConfig->maxNeurons), encoder("Encoder")
 {
 
+	SC_METHOD(FIFOctrl);
+	sensitive<<clock.pos();
+
 	/*
 	 * Init decoder
 	 */
-	map<sndCAMstruct, int> cam;
-	vector<float> weightMem;
 
-	int memoryAddress = 0;
-	int neuronNumber = 0;
-	for (auto nit :NoximGlobalParams::nConfig->sources[clusterID]){
-		for (auto dit : nit){
-			//sourceCluster, source neuron, destNeuron
-			cam[sndCAMstruct(dit.clusterID, dit.neuronID, neuronNumber)] = memoryAddress;
-			memoryAddress++;
-			weightMem.push_back(dit.weight);
+	vector<twoFieldMemStruct<int, int> > decMemOffset;
+	vector<twoFieldMemStruct<int, float> > decMemWeight;
+
+	int memoryAddressDec = 0;
+	for (auto ait : NoximGlobalParams::nConfig->dstToSrc[clusterID]){
+		decMemOffset.push_back(twoFieldMemStruct<int, int>(memoryAddressDec, ait.second.blockSize));
+		for (auto rit : ait.second.data){
+			decMemWeight.push_back(twoFieldMemStruct<int, float>(rit));
 		}
-		neuronNumber++;
+		memoryAddressDec += ait.second.blockSize;
 	}
 
-	if (cam.size() == 0){
-		cam[sndCAMstruct(0,0,0)] = 0;
+	decMemOffset.resize(NoximGlobalParams::nConfig->maxDecoderOffsetRecords,twoFieldMemStruct<int, int>(0,0));
+
+	if (decMemWeight.size() == 0){
+		decMemWeight.push_back(twoFieldMemStruct<int, float> (0,0));
 	}
 
-	if (weightMem.size() == 0){
-		weightMem.resize(1);
-	}
-
-	decoder.initComponents(cam, weightMem);
+	decoder.initComponents(decMemOffset, decMemWeight);
 
 	if (NoximGlobalParams::consoleLogPolicy > 0){
 		cout<<"*** Processing element "<<clusterID<<" ***"<<endl;
-		cout << "Decoder CAM:" << endl;
-		for (auto a : cam) {
-			cout << a.first.srcID<<","<<a.first.srcNeurID<<","<< a.first.dstNeurID<<"->"<<a.second<<endl;
+		cout << "Decoder offsetMem:" << endl;
+		for (auto a : decMemOffset) {
+			cout << a <<endl;
 		}
 
-		cout << "Decoder memory:" << endl;
-		for (auto a : weightMem) {
+		cout << "Decoder weightMemory:" << endl;
+		for (auto a : decMemWeight) {
 			cout << a << endl;
 		}
 	}
 
-	cam.clear();
-	map<sndCAMstruct, int>().swap(cam);
-	weightMem.clear();
-	vector<float>().swap(weightMem);
+	decMemOffset.clear();
+	vector<twoFieldMemStruct<int, int> >().swap(decMemOffset);
+	decMemWeight.clear();
+	vector<twoFieldMemStruct<int, float> >().swap(decMemWeight);
 
 	/*
 	 * Init neurons
@@ -114,35 +146,65 @@ NeuronPE::NeuronPE(sc_module_name name_, int clusterID) :
 	/*
 	 * Init encoder
 	 */
-	vector<dstMemStruct> destMem;
-	destMem.resize(NoximGlobalParams::nConfig->maxNeurons *NoximGlobalParams::nConfig->maxDest, dstMemStruct(0,0,false));
-
-	for (int i = 0; i <NoximGlobalParams::nConfig->destinations[clusterID].size(); i++){
-		for (int j = 0; j <NoximGlobalParams::nConfig->destinations[clusterID][i].size(); j++){
-			destMem[i*NoximGlobalParams::nConfig->maxDest+j] = dstMemStruct(NoximGlobalParams::nConfig->destinations[clusterID][i][j].clusterID,NoximGlobalParams::nConfig->destinations[clusterID][i][j].neuronID, true);
+	
+	vector<dstOffsetMemStruct> encMemOffset;
+	vector<dstMemStruct> encMemDest;
+	
+	int memoryAddressEnc = 0;
+	for (auto nit : NoximGlobalParams::nConfig->srcToDst[clusterID]){
+		int blockSize = 0;
+		bool local = false;
+		int localAxonID;
+		for (auto dcit : nit.second){
+			blockSize++;
+			if (clusterID == dcit.first){
+				local = true;
+				localAxonID = dcit.second.axonID;
+			}
+			else{
+				encMemDest.push_back(dstMemStruct(dcit.first, dcit.second.axonID));
+			}
 		}
+		if (local){
+			encMemDest.push_back(dstMemStruct(clusterID, localAxonID));
+		}
+		encMemOffset.push_back(dstOffsetMemStruct(memoryAddressEnc, blockSize, local));
+		memoryAddressEnc += blockSize;
 	}
 
-	encoder.initComponents(destMem,NoximGlobalParams::nConfig->maxDest);
+	encMemOffset.resize(NoximGlobalParams::nConfig->maxEncoderOffsetRecords, dstOffsetMemStruct(0,0,false));
+
+	if (encMemDest.size() == 0){
+		encMemDest.push_back(dstMemStruct(0,0));
+	}
+
+	encoder.initComponents(encMemOffset, encMemDest);
 
 	if (NoximGlobalParams::consoleLogPolicy > 0){
-		cout<<"Encoder memory:"<<endl;
-		for (auto a : destMem){
-			cout<<a.dstID<<","<<a.dstNeurID<<","<<a.exist<<endl;
+		cout<<"Encoder offset memory:"<<endl;
+		for (auto a : encMemOffset){
+			cout<<a<<endl;
+		}
+		cout<<"Encoder destination memory:"<<endl;
+		for (auto a : encMemDest){
+			cout<<a<<endl;
 		}
 	}
 
-	destMem.clear();
-	vector<dstMemStruct>().swap(destMem);
+	encMemDest.clear();
+	vector<dstMemStruct>().swap(encMemDest);
+	encMemOffset.clear();
+	vector<dstOffsetMemStruct>().swap(encMemOffset);
 
 	/*
 	 * Connect modules
 	 */
 	decoder.clock(clock);
-	decoder.packetIn(packetIn);
-	decoder.rx(rx);
+	decoder.axonIDin(FIFOaxonOut);
+	decoder.ready(FIFOctrlReady);
 	decoder.destIDout(decoderDestIDout);
 	decoder.weightOut(decoderWeightOut);
+	decoder.ack(decoderAck);
 
 	mux.dataIn(decoderWeightOut);
 	mux.control(decoderDestIDout);
@@ -164,7 +226,7 @@ NeuronPE::NeuronPE(sc_module_name name_, int clusterID) :
 	}
 
 	arbiter.clock(clock);
-	arbiter.ack(encoderAck);
+	arbiter.ack(encoderNeuronAck);
 	arbiter.tx(arbiterTx);
 	arbiter.senderID(arbiterSernderID);
 	for (int i = 0; i < neurons.size(); i++){
@@ -174,10 +236,13 @@ NeuronPE::NeuronPE(sc_module_name name_, int clusterID) :
 	encoder.clock(clock);
 	encoder.rx(arbiterTx);
 	encoder.senderID(arbiterSernderID);
-	encoder.localID(localID);
-	encoder.ack(encoderAck);
+	encoder.localClusterID(localClusterID);
+	encoder.neuronAck(encoderNeuronAck);
 	encoder.tx(tx);
 	encoder.packetOut(packetOut);
+	encoder.localAxonID(localAxon);
+	encoder.localAxonTx(localAxonRx);
+	encoder.localAxonAck(localAxonAck);
 
-	localID.write(clusterID);
+	localClusterID.write(clusterID);
 }

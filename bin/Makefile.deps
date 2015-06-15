@@ -2,8 +2,8 @@
 ../src/NeuronArbiter.o: ../src/NeuronArbiter.h
 ../src/NeuronEncoder.o: ../src/NeuronMemory.h ../src/NoximMain.h ../src/NeuronShiftRegister.h
 ../src/Neuron_config_parser.o: ../src/Neuron_config_parser.h ../src/Neuron_config.h
-../src/NeuronDecoder.o: ../src/NeuronMemory.h ../src/NeuronShiftRegister.h ../src/CAM.h
-../src/NeuronPE.o: ../src/NeuronMemory.h ../src/NeuronShiftRegister.h ../src/CAM.h ../src/NeuronMux.h
+../src/NeuronDecoder.o: ../src/NeuronMemory.h ../src/NeuronShiftRegister.h
+../src/NeuronPE.o: ../src/NeuronMemory.h ../src/NeuronShiftRegister.h ../src/NeuronMux.h
 ../src/NoximNoC.o: ../src/NoximNoC.h ../src/NoximTile.h ../src/NoximRouter.h
 ../src/NoximNoC.o: ../src/NoximMain.h ../src/NoximBuffer.h
 ../src/NoximNoC.o: ../src/NoximStats.h ../src/NoximPower.h
